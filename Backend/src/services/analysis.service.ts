@@ -8,6 +8,11 @@ export class AnalysisService {
         this.repository = new AnalysisRepository();
     }
 
+    async getAllAnalyses() {
+
+        return await this.repository.findAll();
+    }
+
     async createAnalysis(
         name: string,
         description?: string

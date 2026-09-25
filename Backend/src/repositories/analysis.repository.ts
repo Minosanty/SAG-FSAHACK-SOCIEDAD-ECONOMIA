@@ -7,6 +7,25 @@ export interface CreateAnalysisData {
 
 export class AnalysisRepository {
 
+    async findAll() {
+
+        const query = `
+            SELECT
+                id,
+                name,
+                description,
+                status,
+                created_at,
+                updated_at
+            FROM analyses
+            ORDER BY created_at DESC
+        `;
+
+        const result = await pool.query(query);
+
+        return result.rows;
+    }
+
     async create(data: CreateAnalysisData) {
 
         const query = `

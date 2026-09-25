@@ -9,6 +9,37 @@ export class AnalysisController {
         this.service = new AnalysisService();
     }
 
+    getAll = async (_req: Request, res: Response) => {
+
+        try {
+
+            const analyses = await this.service.getAllAnalyses();
+
+            return res.json({
+                analyses: analyses.map((analysis) => ({
+                    analysis_id: analysis.id,
+                    name: analysis.name,
+                    description: analysis.description,
+                    status: analysis.status,
+                    created_at: analysis.created_at,
+                    updated_at: analysis.updated_at
+                }))
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            return res.status(500).json({
+                success: false,
+                error: {
+                    code: "GET_ANALYSES_ERROR",
+                    message: "No fue posible obtener los análisis."
+                }
+            });
+        }
+    };
+
     create = async (req: Request, res: Response) => {
 
         try {
