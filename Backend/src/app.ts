@@ -11,6 +11,8 @@ import aiFindingRoutes from "./routes/ai-finding.routes.js";
 import aiReportRoutes from "./routes/ai-report.routes.js";
 import processingRunRoutes from "./routes/processing-run.routes.js";
 import workflowRoutes from "./routes/workflow.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
+import analizarRoutes from "./routes/analizar.routes.js";
 
 const app = express();
 
@@ -32,6 +34,8 @@ app.use("/api", aiFindingRoutes);
 app.use("/api", aiReportRoutes);
 app.use("/api", processingRunRoutes);
 app.use("/api", workflowRoutes);
+app.use("/api", dashboardRoutes);
+app.use("/api", analizarRoutes);
 app.use("/api/analyses", analysisRoutes);
 
 const PORT = 3000;

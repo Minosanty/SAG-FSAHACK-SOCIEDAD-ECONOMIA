@@ -1,11 +1,17 @@
 import type { Request, Response } from "express";
 import { SourceService } from "../services/source.service.js";
+import { N8nService } from "../services/n8n.service.js";
+import { AnalysisRepository } from "../repositories/analysis.repository.js";
 
 export class SourceController {
     private service: SourceService;
+    private n8nService: N8nService;
+    private analysisRepo: AnalysisRepository;
 
     constructor() {
         this.service = new SourceService();
+        this.n8nService = new N8nService();
+        this.analysisRepo = new AnalysisRepository();
     }
 
     createByAnalysis = async (req: Request, res: Response) => {
@@ -23,6 +29,11 @@ export class SourceController {
 
             const source = await this.service.createSource(analysisId, req.body);
 
+            // Trigger n8n webhook asynchronously after source creation
+            this.triggerN8nAnalysis(analysisId, source).catch((err) => {
+                console.error("[n8n] Error al disparar el webhook:", err instanceof Error ? err.message : err);
+            });
+
             return res.status(201).json({
                 success: true,
                 data: source
@@ -37,6 +48,30 @@ export class SourceController {
             });
         }
     };
+
+    private async triggerN8nAnalysis(analysisId: string, source: Record<string, unknown>) {
+        try {
+            // Update analysis status to 'processing'
+            await this.analysisRepo.updateStatus(analysisId, "processing");
+
+            // Send to n8n webhook
+            await this.n8nService.triggerWorkflow("analizar-data", {
+                analysis_id: analysisId,
+                source_id: source.id,
+                source_name: source.name,
+                source_type: source.type,
+                source_status: source.status,
+                content: source.content,
+                triggered_at: new Date().toISOString()
+            });
+
+            console.log(`[n8n] Webhook analizar-data disparado para análisis ${analysisId}`);
+        } catch (error) {
+            console.error(`[n8n] Fallo al procesar análisis ${analysisId}:`, error instanceof Error ? error.message : error);
+            // Revert status on failure
+            await this.analysisRepo.updateStatus(analysisId, "created").catch(() => {});
+        }
+    }
 
     listByAnalysis = async (req: Request, res: Response) => {
         try {

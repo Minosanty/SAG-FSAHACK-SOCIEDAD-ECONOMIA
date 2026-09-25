@@ -6,23 +6,41 @@ export class N8nService {
     }
 
     async triggerWorkflow(workflowName: string, payload: Record<string, unknown>) {
-        const response = await fetch(`${this.webhookBaseUrl}/webhook/${workflowName}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-        });
+        // Try webhook-test first (n8n test mode), then fall back to production webhook
+        const urls = [
+            `${this.webhookBaseUrl}/webhook-test/${workflowName}`,
+            `${this.webhookBaseUrl}/webhook/${workflowName}`
+        ];
 
-        if (!response.ok) {
-            throw new Error(`No fue posible iniciar el workflow ${workflowName}.`);
+        let lastError: Error | null = null;
+
+        for (const url of urls) {
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    console.log(`[n8n] Webhook exitoso: ${url}`);
+                    return {
+                        ok: true,
+                        status: response.status,
+                        workflow: workflowName,
+                        payload
+                    };
+                }
+
+                lastError = new Error(`HTTP ${response.status} desde ${url}`);
+            } catch (error) {
+                lastError = error instanceof Error ? error : new Error(String(error));
+                console.warn(`[n8n] No se pudo contactar ${url}: ${lastError.message}`);
+            }
         }
 
-        return {
-            ok: true,
-            status: response.status,
-            workflow: workflowName,
-            payload
-        };
+        throw new Error(`No fue posible iniciar el workflow ${workflowName}. ${lastError?.message ?? ""}`);
     }
 }

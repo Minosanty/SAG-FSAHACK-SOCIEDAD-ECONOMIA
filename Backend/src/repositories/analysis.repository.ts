@@ -105,6 +105,26 @@ export class AnalysisRepository {
         return result.rows[0];
     }
 
+    async updateStatus(id: string, status: string) {
+        const query = `
+            UPDATE analyses
+            SET
+                status = $1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2
+            RETURNING
+                id,
+                name,
+                description,
+                status,
+                created_at,
+                updated_at
+        `;
+
+        const result = await pool.query(query, [status, id]);
+        return result.rows[0] ?? null;
+    }
+
     async delete(id: string) {
         const query = `
             DELETE FROM analyses
